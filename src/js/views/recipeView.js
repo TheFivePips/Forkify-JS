@@ -15,6 +15,27 @@ class RecipeView  extends View {
         ['hashchange', 'load'].forEach(ev => window.addEventListener(ev, handler));
     }
 
+    addHandlerUpdateServings(handler) {
+        this._parentElement.addEventListener('click', function(e){
+            const btn = e.target.closest('.btn--update-servings')
+            if(!btn) return
+            
+            // its updateTo and not update-to because it gets automatically converted to camel case when used in the dataset
+            // this is the same thing as the destructured code below it, except that you cannot convert the destructured property into a number using + so you have to do it elsewhere
+            // const updateTo = +btn.dataset.updateTo
+            const { updateTo } = btn.dataset
+            if(+updateTo > 0) handler(+updateTo)
+        })
+    }
+
+    addHandlerBookmark(handler){
+        this._parentElement.addEventListener('click', function(e) {
+            const btn = e.target.closest('.btn--bookmark')
+            if(!btn) return
+            handler()
+        })
+    }
+
     _generateMarkup() {
         // this._data is the model.state.recipe in this instance
         return `
@@ -41,12 +62,12 @@ class RecipeView  extends View {
                 <span class="recipe__info-text">servings</span>
 
                 <div class="recipe__info-buttons">
-                    <button class="btn--tiny btn--increase-servings">
+                    <button class="btn--tiny btn--update-servings" data-update-to="${this._data.servings - 1}">
                         <svg>
                             <use href="${icons}#icon-minus-circle"></use>
                         </svg>
                     </button>
-                    <button class="btn--tiny btn--increase-servings">
+                    <button class="btn--tiny btn--update-servings" data-update-to="${this._data.servings +1 }">
                         <svg>
                             <use href="${icons}#icon-plus-circle"></use>
                         </svg>
@@ -56,9 +77,9 @@ class RecipeView  extends View {
 
             <div class="recipe__user-generated">
             </div>
-            <button class="btn--round">
+            <button class="btn--round btn--bookmark">
                 <svg class="">
-                <use href="${icons}#icon-bookmark-fill"></use>
+                <use href="${icons}#icon-bookmark${this._data.bookmarked ? "-fill" : ""}"></use>
                 </svg>
             </button>
             </div>
