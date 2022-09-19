@@ -8,7 +8,9 @@ class BookmarksView extends View {
     _errorMessage = 'No bookmarks yet. Find a nice recipe and book mark it'
     _message = ""
     
-
+    addHandlerRender(handler){
+        window.addEventListener('load', handler)
+    }
     _generateMarkup(){
         // render set to false will allow us to simply return the markup that would otherwise not be returned
        return this._data.map(bookmark => previewView.render(bookmark, false)).join('') 

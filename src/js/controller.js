@@ -10,6 +10,9 @@ import searchView from './views/searchView.js';
 import resultsView from './views/resultsView.js';
 import paginationView from './views/paginationView.js';
 import bookmarksView from './views/bookmarksView.js';
+import addRecipeView from './views/addRecipeView.js';
+import { MODAL_CLOSE_SEC } from './config.js';
+
 
 
 const recipeContainer = document.querySelector('.recipe');
@@ -34,13 +37,13 @@ const controlRecipies = async function(){
     resultsView.update(model.getSearchResultsPage())
     // 1.update bookmarks view
     bookmarksView.update(model.state.bookmarks)
-
+    
     // 2. loading recipe
-      // this doesnt return anything, it only manipulates the state, so it doesnt need to be assigned to a variable
+    // this doesnt return anything, it only manipulates the state, so it doesnt need to be assigned to a variable
     await model.loadRecipe(id)
     // 3. render recipe
     recipeView.render(model.state.recipe)
-
+    
   }catch(err){
     
     recipeView.renderError()
@@ -95,15 +98,49 @@ const controlAddBookmark = function() {
   // render the bookmarks view
   bookmarksView.render(model.state.bookmarks)
 
+}
+
+const controlBookmarks = function(){
+  bookmarksView.render(model.state.bookmarks)
+}
+
+const controlAddRecipe = async function(newRecipe){
+  try {
+    addRecipeView.renderSpinner()
+    // upload the recipe data
+    await model.uploadRecipe(newRecipe)
+    console.log(model.state.recipe);
+    // render recipe
+    recipeView.render(model.state.recipe)
+    // success message
+    addRecipeView.renderMessage()
+
+    // render bookmark view
+    bookmarksView.render(model.state.bookmarks)
+
+    // change id in url with the history api. pushstate lets us change the url without reloading the page
+    window.history.pushState(null, '', `#${model.state.recipe.id}`)
+    // close form window
+    setTimeout(function(){
+      addRecipeView.toggelWindow()
+    }, MODAL_CLOSE_SEC * 1000)
+
+  }catch (err) {
+    console.log(err);
+    addRecipeView.renderError(err.message)
   }
+}
 
 const init = function(){
   // use Pub/Sub so we can listen for events in the view(UI logic), but handle the event in the controller(application logic) without importing or exporting anything and keeping them totally seperate
+  // bookmarksview must be called first in order to avoid data bugs
+  bookmarksView.addHandlerRender(controlBookmarks)
   recipeView.addHandlerRender(controlRecipies)
   recipeView.addHandlerUpdateServings(controlServings)
   recipeView.addHandlerBookmark(controlAddBookmark)
   searchView.addHandlerSearch(controlSearchResults)
   paginationView.addHandlerClick(controlPagination)
+  addRecipeView.addHandlerUpload(controlAddRecipe)
 
   
 }

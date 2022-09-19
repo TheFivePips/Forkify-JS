@@ -2,8 +2,8 @@
 
 
 import { async } from "regenerator-runtime";
-import { API_URL, RESULTS_PER_PAGE } from "./config";
-import { getJSON } from "./helpers";
+import { API_URL, RESULTS_PER_PAGE, KEY } from "./config";
+import { AJAX } from "./helpers";
 
 
 // contains all the data that our application needs
@@ -18,13 +18,9 @@ export const state = {
     bookmarks : [],
     
 }
-
-export const loadRecipe = async function(id){
-    try {
-        const data = await getJSON(`${API_URL}${id}`)
-      
-        const { recipe } = data.data
-        state.recipe = {
+const createRecipeObject = function(data){
+    const { recipe } = data.data
+        return {
           id: recipe.id,
           title: recipe.title,
           publisher: recipe.publisher,
@@ -32,8 +28,16 @@ export const loadRecipe = async function(id){
           image: recipe.image_url,
           servings: recipe.servings,
           cookingTime: recipe.cooking_time,
-          ingredients: recipe.ingredients
-          }
+          ingredients: recipe.ingredients,
+        //   only recipes we have uploaded have the key so we use the && to short circuit the logic if one is available and then spread the values. nice trick to conditoinally add properties to an object
+          ...(recipe.key && { key: recipe.key })
+        }
+}
+
+export const loadRecipe = async function(id){
+    try {
+        const data = await AJAX(`${API_URL}${id}?key=${KEY}`)
+        state.recipe = createRecipeObject(data)
         // loop through the bookmarks array and see if any elements have the same id as the one currently in the state
         if(state.bookmarks.some(bookmark => bookmark.id === id))
             state.recipe.bookmarked = true
@@ -50,7 +54,7 @@ export const loadSearchResults = async function(query){
     try {
         // store the query in the state.search obj
         state.search.query = query
-        const data = await getJSON(`${API_URL}?search=${query}`)
+        const data = await AJAX(`${API_URL}?search=${query}&key=${KEY}`)
         
         // store the search results in the state.search obj
         state.search.results = data.data.recipes.map(rec => {
@@ -59,6 +63,7 @@ export const loadSearchResults = async function(query){
                 title: rec.title,
                 publisher: rec.publisher,
                 image: rec.image_url,
+                ...(rec.key && { key: rec.key })
             }
         })
         // reset the page to 1 to avoid loading other pages on a new search
@@ -92,6 +97,7 @@ export const addBookmark = function(recipe) {
     if(recipe.id === state.recipe.id) {
         state.recipe.bookmarked = true
     }
+    persistBookmarks()
 }
 export const deleteBookmark = function(id) {
     const index = state.bookmarks.findIndex(el => el.id === id)
@@ -99,5 +105,63 @@ export const deleteBookmark = function(id) {
     state.bookmarks.splice(index, 1)
     // marke recipe at NOT bokmarked
     if(id === state.recipe.id) state.recipe.bookmarked = false
+    persistBookmarks()
     
+}
+
+const persistBookmarks = function(){
+    localStorage.setItem('bookmarks', JSON.stringify(state.bookmarks))
+}
+
+const init = function(){
+    const storage = localStorage.getItem('bookmarks')
+    if(storage){
+        state.bookmarks = JSON.parse(storage)
+    }
+}
+
+
+init()
+
+const clearBookmarks = function(){
+    localStorage.clear('bookmarks')
+}
+// clearBookmarks()
+
+export const uploadRecipe = async function(newRecipe){
+    try {
+        // filter the newRecie info to give us just the ingredients that have values, then use map and destructuring to make the quantity unit and description variables from each ingredient
+        const ingredients = Object.entries(newRecipe).filter(entry => entry[0].startsWith('ingredient') && entry[1] !== "").map(ing => {
+             
+            const ingArr = ing[1].split(',').map(el => el.trim())
+            // check to see if the input was missing any information
+        
+            if(ingArr.length !== 3) 
+            throw new Error(
+                "Wrong ingredient format. please use the correct format"
+            )
+            const [quantity, unit, description] = ingArr
+    
+    
+            return { quantity: quantity ? +quantity : null, unit, description }
+        })
+        // formating the info so that the API can receive it
+        const recipe = {
+            title: newRecipe.title,
+            source_url: newRecipe.sourceUrl,
+            image_url: newRecipe.image,
+            publisher: newRecipe.publisher,
+            cooking_time: +newRecipe.cookingTime,
+            servings: +newRecipe.servings,
+            ingredients,
+    
+        }
+        const data = await AJAX(`${API_URL}?key=${KEY}`, recipe)
+        state.recipe = createRecipeObject(data)
+        addBookmark(state.recipe)
+        
+    }catch(err) {
+        throw err
+    }
+   
 }
