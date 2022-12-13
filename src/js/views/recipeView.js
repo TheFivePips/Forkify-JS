@@ -5,11 +5,14 @@ import View from './View';
 import icons from 'url:../../img/icons.svg'
 import { Fraction } from 'fractional'
 
+// const Fraction = require('fractional');
+
 class RecipeView  extends View {
     _parentElement = document.querySelector('.recipe');
     _errorMessage = 'We couldnt find that recipe. Try again!'
     _message = ""
     
+
     
     addHandlerRender(handler) {
         ['hashchange', 'load'].forEach(ev => window.addEventListener(ev, handler));
