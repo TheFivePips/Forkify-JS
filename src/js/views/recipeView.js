@@ -3,8 +3,8 @@
 
 import View from './View';
 import icons from 'url:../../img/icons.svg'
-// import { Fraction } from 'fractional'
-const Fraction = require('fractional').Fraction;
+import { Fraction } from 'fractional'
+// const Fraction = require('fractional').Fraction;
 
 class RecipeView  extends View {
     _parentElement = document.querySelector('.recipe');
